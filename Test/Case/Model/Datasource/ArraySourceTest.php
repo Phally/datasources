@@ -131,6 +131,161 @@ class UserModel extends CakeTestModel {
 }
 
 /**
+ * ArraySourceTestModel
+ *
+ * Base model for the following array models.
+ */
+abstract class ArraySourceTestModel extends CakeTestModel {
+
+/**
+ * Use the array config made earlier.
+ *
+ * @var string
+ */
+	public $useDbConfig = 'test_array';
+
+/**
+ * Attach Containable to the models.
+ *
+ * @var array
+ */
+	public $actsAs = array('Containable');
+}
+
+/**
+ * ArraySourceTestProfile
+ *
+ * Profile simulation model.
+ */
+class ArraySourceTestProfile extends ArraySourceTestModel {
+
+/**
+ * hasOne
+ *
+ * Associate with User.
+ *
+ * @var array
+ */
+	public $hasOne = array('ArraySourceTestUser');
+
+/**
+ * Records
+ *
+ * @var array
+ */
+	public $records = array(
+		array('id' => 1, 'title' => 'Lad'),
+		array('id' => 2, 'title' => 'Lord'),
+		array('id' => 3, 'title' => 'Sir')
+	);
+}
+
+/**
+ * ArraySourceTestUser
+ *
+ * User simulation model.
+ */
+class ArraySourceTestUser extends ArraySourceTestModel {
+
+/**
+ * belongsTo
+ *
+ * Associate with Profile.
+ *
+ * @var array
+ */
+	public $belongsTo = array('ArraySourceTestProfile');
+
+/**
+ * hasMany
+ *
+ * Associate with Post & Comment.
+ *
+ * @var array
+ */
+	public $hasMany = array('ArraySourceTestPost', 'ArraySourceTestComment');
+
+/**
+ * Records
+ *
+ * @var array
+ */
+	public $records = array(
+		array('id' => 1, 'array_source_test_profile_id' => 3, 'username' => 'Phally'),
+		array('id' => 2, 'array_source_test_profile_id' => 2, 'username' => 'ADmad'),
+		array('id' => 3, 'array_source_test_profile_id' => 1, 'username' => 'Jippi')
+	);
+}
+
+/**
+ * ArraySourceTestPost
+ *
+ * Post simulation model.
+ */
+class ArraySourceTestPost extends ArraySourceTestModel {
+
+/**
+ * belongsTo
+ *
+ * Associate with User.
+ *
+ * @var array
+ */
+	public $belongsTo = array('ArraySourceTestUser');
+
+/**
+ * hasMany
+ *
+ * Associate with Comment.
+ *
+ * @var array
+ */
+	public $hasMany = array('ArraySourceTestComment');
+
+/**
+ * Records
+ *
+ * @var array
+ */
+	public $records = array(
+		array('id' => 1, 'array_source_test_user_id' => 1, 'title' => 'First post'),
+		array('id' => 2, 'array_source_test_user_id' => 1, 'title' => 'Second post'),
+		array('id' => 3, 'array_source_test_user_id' => 2, 'title' => 'Third post'),
+	);
+}
+
+/**
+ * ArraySourceTestComment
+ *
+ * Comment simulation model.
+ */
+class ArraySourceTestComment extends ArraySourceTestModel {
+
+/**
+ * belongsTo
+ *
+ * Associate with Post & User
+ *
+ * @var array
+ */
+	public $belongsTo = array('ArraySourceTestPost', 'ArraySourceTestUser');
+
+/**
+ * Records
+ *
+ * @var array
+ */
+	public $records = array(
+		array('id' => 1, 'array_source_test_post_id' => 1, 'array_source_test_user_id' => 3, 'comment' => 'Cool story bro.'),
+		array('id' => 2, 'array_source_test_post_id' => 1, 'array_source_test_user_id' => 1, 'comment' => 'Thanks!'),
+		array('id' => 3, 'array_source_test_post_id' => 1, 'array_source_test_user_id' => 2, 'comment' => 'I dunno, wasn\'t that good.'),
+		array('id' => 4, 'array_source_test_post_id' => 2, 'array_source_test_user_id' => 3, 'comment' => 'Literary masterpiece.'),
+		array('id' => 5, 'array_source_test_post_id' => 2, 'array_source_test_user_id' => 2, 'comment' => 'Yep!'),
+		array('id' => 6, 'array_source_test_post_id' => 2, 'array_source_test_user_id' => 3, 'comment' => 'I read it again, still brilliant.'),
+	);
+}
+
+/**
  * Array Datasource Test
  *
  */
@@ -833,6 +988,65 @@ class ArraySourceTest extends CakeTestCase {
 			)
 		);
 		$this->assertEqual($result, $expected);
+	}
+
+/**
+ * testDeepRecursion
+ *
+ * @return void
+ */
+	public function testDeepRecursion() {
+		$Post = ClassRegistry::init('ArraySourceTestPost');
+
+		$expected = array(
+			0 => array(
+				'ArraySourceTestPost' => array(
+					'id' => 1,
+					'array_source_test_user_id' => 1,
+					'title' => 'First post'
+				),
+				'ArraySourceTestComment' => array(
+					0 => array(
+						'id' => 1,
+						'array_source_test_user_id' => 3,
+						'ArraySourceTestUser' => array(
+							'id' => 3,
+							'username' => 'Jippi'
+						)
+					),
+					1 => array(
+						'id' => 2,
+						'array_source_test_user_id' => 1,
+						'ArraySourceTestUser' => array(
+							'id' => 1,
+							'username' => 'Phally'
+						)
+					),
+					2 => array(
+						'id' => 3,
+						'array_source_test_user_id' => 2,
+						'ArraySourceTestUser' => array(
+							'id' => 2,
+							'username' => 'ADmad'
+						)
+					)
+				)
+			)
+		);
+
+		$result = $Post->find('all', array(
+			'contain' => array(
+				'ArraySourceTestComment' => array(
+					'fields' => array('id', 'array_source_test_user_id'),
+					'ArraySourceTestUser' => array(
+						'fields' => array('id', 'username')
+					)
+				)
+			),
+			'limit' => 1
+		));
+
+		$this->assertSame($expected, $result);
 	}
 
 }
